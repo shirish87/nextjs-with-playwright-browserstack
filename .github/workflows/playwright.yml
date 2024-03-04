@@ -5,10 +5,6 @@ on:
   pull_request:
     branches: [ main, master ]
 
-env:
-  BROWSERSTACK_USERNAME: "${{ secrets.BROWSERSTACK_USERNAME }}"
-  BROWSERSTACK_KEY: "${{ secrets.BROWSERSTACK_KEY }}"
-
 jobs:
   test:
     timeout-minutes: 60
@@ -25,6 +21,9 @@ jobs:
       run: npx playwright install --with-deps
     - name: Run Playwright tests
       run: npm run test:e2e
+      env:
+        BROWSERSTACK_USERNAME: "${{ secrets.BROWSERSTACK_USERNAME }}"
+        BROWSERSTACK_KEY: "${{ secrets.BROWSERSTACK_KEY }}"
     - uses: actions/upload-artifact@v3
       if: always()
       with:
