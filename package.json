@@ -1,10 +1,13 @@
 {
+  "name": "nextjs-with-playwright-browserstack",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test:e2e": "playwright test"
+    "pretest:e2e": "browserstack-local start $npm_package_name",
+    "test:e2e": "playwright test",
+    "posttest:e2e": "browserstack-local stop $npm_package_name"
   },
   "dependencies": {
     "next": "latest",
@@ -12,9 +15,10 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.40.1",
+    "@playwright/test": "^1.42.1",
     "@types/node": "20.10.4",
     "@types/react": "18.2.45",
+    "browserstack-client": "^3.4.0",
     "typescript": "5.3.3"
   }
 }
