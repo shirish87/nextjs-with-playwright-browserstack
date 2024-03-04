@@ -19,14 +19,14 @@ export type BrowserStackOptions = {
     build?: string;
   } & (
     | {
-        browser: string;
-        browser_version: string;
-        os: string;
-        os_version: string;
+        browserName: string;
+        browserVersion: string;
+        os: "Windows" | "OS X";
+        osVersion: string;
         isMobile?: false;
       }
     | {
-        browser: string;
+        browserName: string;
         deviceName: string;
         os: "android";
         osVersion: string;
@@ -41,14 +41,14 @@ export type BrowserStackFixture = {
   afterEach: any;
 };
 
-const defaultCapabilities = () => ({
+const defaultCapabilities = (): BrowserStackOptions["capabilities"] => ({
   username: "",
   accessKey: "",
   local: (process?.env?.BROWSERSTACK_LOCAL ?? "false") === "true",
-  browser: "chrome",
-  browser_version: "latest",
-  os: "osx",
-  os_version: "catalina",
+  browserName: "chrome",
+  browserVersion: "latest",
+  os: "OS X",
+  osVersion: "catalina",
 });
 
 const parseCapabilities = (
@@ -124,21 +124,21 @@ export const test = base.extend<BrowserStackOptions & BrowserStackFixture>({
       ...rest,
       name: capabilities.name ?? testInfo.title,
       build: capabilities.build ?? testInfo.project.name,
-      ...(isMobile ? { realMobile: "true" } : undefined),
       "browserstack.username": username,
       "browserstack.accessKey": accessKey,
-      ...(playwrightVersion
-        ? {
-            "browserstack.playwrightVersion": playwrightVersion,
-            "client.playwrightVersion": playwrightVersion,
-          }
-        : undefined),
       ...(local
         ? {
             "browserstack.local": "true",
             "browserstack.localIdentifier": localIdentifier,
           }
         : undefined),
+      ...(playwrightVersion
+        ? {
+            "browserstack.playwrightVersion": playwrightVersion,
+            "client.playwrightVersion": playwrightVersion,
+          }
+        : undefined),
+      ...(isMobile ? { realMobile: "true" } : undefined),
     };
 
     const connectURL = `${baseURL}?caps=${encodeURIComponent(
