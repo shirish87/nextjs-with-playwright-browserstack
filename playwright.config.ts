@@ -66,22 +66,22 @@ export default defineConfig<BrowserStackOptions>({
         },
       },
     },
-    // {
-    //   name: "chrome android",
-    //   use: {
-    //     browserstack: true,
-    //     capabilities: {
-    //       build: `${process.env.npm_package_name} - Google Pixel 6`,
-    //       local: true,
-    //       localIdentifier: process.env.npm_package_name,
-    //       isMobile: true,
-    //       browser: "chrome",
-    //       deviceName: "Google Pixel 6",
-    //       os: "android",
-    //       osVersion: "12.0",
-    //     },
-    //   },
-    // },
+    {
+      name: "chrome android",
+      use: {
+        browserstack: true,
+        capabilities: {
+          build: `${process.env.npm_package_name} - Google Pixel 6`,
+          local: true,
+          localIdentifier: process.env.npm_package_name,
+          isMobile: true,
+          browser: "chrome",
+          deviceName: "Google Pixel 6",
+          os: "android",
+          osVersion: "12.0",
+        },
+      },
+    },
     {
       name: "firefox",
       use: { ...devices["Desktop Firefox"] },

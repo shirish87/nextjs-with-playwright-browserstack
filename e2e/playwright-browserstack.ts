@@ -157,7 +157,7 @@ export const test = base.extend<BrowserStackOptions & BrowserStackFixture>({
 
       platform = await playwright._android.connect(connectURL);
       await platform.shell("am force-stop com.android.chrome");
-      const browserContext = await platform.launchBrowser();
+      const browserContext = await platform.launchBrowser(testInfo.project.use);
       newPage = await browserContext.newPage();
     } else {
       if (typeof playwright?.chromium?.connect !== "function") {
