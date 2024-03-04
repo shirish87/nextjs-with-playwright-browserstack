@@ -30,7 +30,7 @@ export type BrowserStackOptions = {
         deviceName: string;
         os: "android";
         osVersion: string;
-        isMobile?: true;
+        isMobile: true;
       }
   );
 };
