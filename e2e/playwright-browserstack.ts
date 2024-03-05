@@ -59,7 +59,7 @@ export const test = base.extend<BrowserStackOptions & BrowserStackFixtures>({
       return await use(page);
     }
 
-    if (!browserstack || typeof browserstack !== "object") {
+    if (typeof browserstack !== "object") {
       throw new Error("Missing BrowserStack capabilities");
     }
 
