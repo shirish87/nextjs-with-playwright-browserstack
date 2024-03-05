@@ -52,7 +52,7 @@ export type BrowserStackFixtures = {
 };
 
 export const test = base.extend<BrowserStackOptions & BrowserStackFixtures>({
-  browserstack: [defaultCapabilities(), { option: true }],
+  browserstack: [undefined, { option: true }],
 
   page: async ({ page, playwright, browserstack }, use, testInfo) => {
     if (!browserstack) {
@@ -135,16 +135,18 @@ export const test = base.extend<BrowserStackOptions & BrowserStackFixtures>({
         `browserstack_executor: ${JSON.stringify(testResult)}`);
 
         if (testInfo.status !== testInfo.expectedStatus) {
-          const tracePath = join(testInfo.outputDir, "trace.zip");
           const screenshotPath = join(testInfo.outputDir, "screenshot.png");
 
-          await context.tracing.stop({ path: tracePath });
           await page.screenshot({ path: screenshotPath });
 
           await testInfo.attach("screenshot", {
             path: screenshotPath,
             contentType: "image/png",
           });
+
+          const tracePath = join(testInfo.outputDir, "trace.zip");
+
+          await context.tracing.stop({ path: tracePath });
 
           await testInfo.attach("trace", {
             path: tracePath,
@@ -156,16 +158,6 @@ export const test = base.extend<BrowserStackOptions & BrowserStackFixtures>({
     { scope: "test", auto: true },
   ],
 });
-
-function defaultCapabilities(): ConfiguredCapabilities {
-  return {
-    local: false,
-    browserName: "chrome",
-    browserVersion: "latest",
-    os: "OS X",
-    osVersion: "catalina",
-  };
-}
 
 function parseCapabilities(capabilities: ConfiguredCapabilities) {
   let {
