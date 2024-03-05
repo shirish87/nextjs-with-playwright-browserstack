@@ -54,8 +54,7 @@ export default defineConfig<BrowserStackOptions>({
     {
       name: "chrome desktop",
       use: {
-        browserstack: true,
-        capabilities: {
+        browserstack: {
           build: `${process.env.npm_package_name} - chrome osx`,
           local: true,
           localIdentifier: process.env.npm_package_name,
@@ -69,12 +68,11 @@ export default defineConfig<BrowserStackOptions>({
     {
       name: "chrome android",
       use: {
-        browserstack: true,
-        capabilities: {
+        browserstack: {
           build: `${process.env.npm_package_name} - Google Pixel 6`,
           local: true,
           localIdentifier: process.env.npm_package_name,
-          isMobile: true,
+          realMobile: true,
           browserName: "chrome",
           deviceName: "Google Pixel 6",
           os: "android",

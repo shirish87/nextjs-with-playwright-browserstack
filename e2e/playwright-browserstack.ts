@@ -1,154 +1,85 @@
 import type { AndroidDevice, Browser, Page } from "@playwright/test";
 import { test as base } from "@playwright/test";
 import { version as pwVersion } from "@playwright/test/package.json";
-import { LocalTestingBinary } from "browserstack-client/node";
+import { join } from "node:path";
 export * from "playwright/test";
 
-const baseURL = "wss://cdp.browserstack.com/playwright";
+const browserstackEndpoint = "wss://cdp.browserstack.com/playwright";
+
+export type BrowserPlatform =
+  | {
+      browserName: string;
+      browserVersion: string;
+      os: "Windows" | "OS X";
+      osVersion: string;
+      realMobile?: false;
+    }
+  | {
+      browserName: string;
+      deviceName: string;
+      os: "android";
+      osVersion: string;
+      realMobile?: true;
+    };
+
+export type ConfiguredCapabilities = {
+  username?: string;
+  accessKey?: string;
+  local?: boolean;
+  localIdentifier?: string;
+  playwrightVersion?: string;
+  name?: string;
+  build?: string;
+} & BrowserPlatform;
+
+export type Capabilities = BrowserPlatform & {
+  name?: string;
+  build?: string;
+  realMobile?: string;
+  "browserstack.username": string;
+  "browserstack.accessKey": string;
+  "browserstack.local"?: string;
+  "browserstack.localIdentifier"?: string;
+  "browserstack.playwrightVersion"?: string;
+} & Record<string, unknown>;
 
 export type BrowserStackOptions = {
-  browserstack: boolean;
-
-  capabilities: {
-    username?: string;
-    accessKey?: string;
-    local?: boolean;
-    localIdentifier?: string;
-    playwrightVersion?: string;
-    name?: string;
-    build?: string;
-  } & (
-    | {
-        browserName: string;
-        browserVersion: string;
-        os: "Windows" | "OS X";
-        osVersion: string;
-        isMobile?: false;
-      }
-    | {
-        browserName: string;
-        deviceName: string;
-        os: "android";
-        osVersion: string;
-        isMobile: true;
-      }
-  );
+  browserstack?: ConfiguredCapabilities;
 };
 
-export type BrowserStackFixture = {
-  page: Page;
-  beforeEach: any;
-  afterEach: any;
+export type BrowserStackFixtures = {
+  isBrowserstack: boolean;
 };
 
-const defaultCapabilities = (): BrowserStackOptions["capabilities"] => ({
-  username: "",
-  accessKey: "",
-  local: (process?.env?.BROWSERSTACK_LOCAL ?? "false") === "true",
-  browserName: "chrome",
-  browserVersion: "latest",
-  os: "OS X",
-  osVersion: "catalina",
-});
+export const test = base.extend<BrowserStackOptions & BrowserStackFixtures>({
+  browserstack: [defaultCapabilities(), { option: true }],
 
-const parseCapabilities = (
-  capabilities: BrowserStackOptions["capabilities"]
-) => {
-  let {
-    username,
-    accessKey,
-    local,
-    localIdentifier,
-    playwrightVersion,
-    ...rest
-  } = capabilities;
-
-  username ??= process?.env?.BROWSERSTACK_USERNAME?.trim?.();
-  accessKey ??= (
-    process?.env?.BROWSERSTACK_KEY ?? process?.env?.BROWSERSTACK_ACCESS_KEY
-  )?.trim?.();
-  local ??= (process?.env?.BROWSERSTACK_LOCAL?.trim?.() ?? "false") === "true";
-  localIdentifier ??= local
-    ? capabilities.localIdentifier ?? process?.env?.npm_package_name?.trim?.()
-    : undefined;
-  playwrightVersion ??= process?.env?.PLAYWRIGHT_VERSION?.trim?.() ?? pwVersion;
-
-  if (!username?.length || !accessKey?.length) {
-    throw new Error("Missing BrowserStack credentials");
-  }
-
-  if (!playwrightVersion?.length) {
-    throw new Error("Missing Playwright version");
-  }
-
-  return {
-    ...rest,
-    username,
-    accessKey,
-    local,
-    localIdentifier,
-    playwrightVersion,
-    isMobile: capabilities.isMobile === true,
-  };
-};
-
-export const test = base.extend<BrowserStackOptions & BrowserStackFixture>({
-  browserstack: [false, { option: true }],
-
-  capabilities: [defaultCapabilities(), { option: true }],
-
-  page: async (
-    { page, playwright, browserstack, capabilities },
-    use,
-    testInfo
-  ) => {
+  page: async ({ page, playwright, browserstack }, use, testInfo) => {
     if (!browserstack) {
       return await use(page);
     }
 
-    if (!capabilities || typeof capabilities !== "object") {
+    if (!browserstack || typeof browserstack !== "object") {
       throw new Error("Missing BrowserStack capabilities");
     }
 
     const {
-      username,
-      accessKey,
-      local,
-      localIdentifier,
-      isMobile,
-      playwrightVersion,
-      ...rest
-    } = parseCapabilities(capabilities);
+      configuredCapabilities: { realMobile, os },
+      desiredCapabilities,
+    } = parseCapabilities(browserstack);
 
-    const finalCapabilities = {
-      ...rest,
-      name: capabilities.name ?? testInfo.title,
-      build: capabilities.build ?? testInfo.project.name,
-      "browserstack.username": username,
-      "browserstack.accessKey": accessKey,
-      ...(local
-        ? {
-            "browserstack.local": "true",
-            "browserstack.localIdentifier": localIdentifier,
-          }
-        : undefined),
-      ...(playwrightVersion
-        ? {
-            "browserstack.playwrightVersion": playwrightVersion,
-            "client.playwrightVersion": playwrightVersion,
-          }
-        : undefined),
-      ...(isMobile ? { realMobile: "true" } : undefined),
-    };
-
-    const connectURL = `${baseURL}?caps=${encodeURIComponent(
-      JSON.stringify(finalCapabilities)
+    const connectURL = `${browserstackEndpoint}?caps=${encodeURIComponent(
+      JSON.stringify(desiredCapabilities)
     )}`;
 
     let platform: AndroidDevice | Browser;
     let newPage: Page;
 
-    if (isMobile) {
+    if (realMobile) {
+      if (os !== "android") {
+        throw new Error("Only Android is supported at the moment");
+      }
+
       if (typeof playwright?._android?.connect !== "function") {
         throw new Error(
           "Android is not supported by the current Playwright version"
@@ -173,59 +104,129 @@ export const test = base.extend<BrowserStackOptions & BrowserStackFixture>({
     }
 
     await use(newPage);
+
     await newPage.close();
     await platform.close();
   },
 
-  // https://github.com/browserstack/node-js-playwright-browserstack/blob/826013cd21a10aa4dad5e08f279a48b548c0009d/fixture.js#L125
-  beforeEach: [
-    async ({ page }, use) => {
-      await page
-        .context()
-        .tracing.start({ screenshots: true, snapshots: true, sources: true });
-      await use();
-    },
-    { auto: true },
-  ],
-
-  afterEach: [
-    async ({ page, capabilities }, use, testInfo) => {
-      await use();
-
-      if (testInfo.status == "failed") {
-        if (capabilities) {
-          // posttest script won't run if the test is failing
-          // so we need to stop the local testing binary here
-          // TODO: reconcile this with maxFailures setting
-          const {
-            accessKey: key,
-            local,
-            localIdentifier,
-          } = parseCapabilities(capabilities);
-
-          if (key && local) {
-            const localTestingBinary = new LocalTestingBinary({
-              key,
-              localIdentifier,
-            });
-            await localTestingBinary.stop().catch(() => null);
-          }
-        }
-
-        await page
-          .context()
-          .tracing.stop({ path: `${testInfo.outputDir}/trace.zip` });
-        await page.screenshot({ path: `${testInfo.outputDir}/screenshot.png` });
-        await testInfo.attach("screenshot", {
-          path: `${testInfo.outputDir}/screenshot.png`,
-          contentType: "image/png",
-        });
-        await testInfo.attach("trace", {
-          path: `${testInfo.outputDir}/trace.zip`,
-          contentType: "application/zip",
+  isBrowserstack: [
+    async ({ browserstack, page, context }, use, testInfo) => {
+      if (browserstack) {
+        await context.tracing.start({
+          screenshots: true,
+          snapshots: true,
+          sources: true,
         });
       }
+
+      await use(Boolean(browserstack));
+
+      if (browserstack) {
+        // https://www.browserstack.com/docs/automate/selenium/view-test-results/mark-tests-as-pass-fail
+        const testResult = {
+          action: "setSessionStatus",
+          arguments: {
+            status: testInfo.status === "passed" ? "passed" : "failed",
+            reason: JSON.stringify(testInfo?.error ?? testInfo.status),
+          },
+        };
+
+        await page.evaluate(() => {},
+        `browserstack_executor: ${JSON.stringify(testResult)}`);
+
+        if (testInfo.status !== testInfo.expectedStatus) {
+          const tracePath = join(testInfo.outputDir, "trace.zip");
+          const screenshotPath = join(testInfo.outputDir, "screenshot.png");
+
+          await context.tracing.stop({ path: tracePath });
+          await page.screenshot({ path: screenshotPath });
+
+          await testInfo.attach("screenshot", {
+            path: screenshotPath,
+            contentType: "image/png",
+          });
+
+          await testInfo.attach("trace", {
+            path: tracePath,
+            contentType: "application/zip",
+          });
+        }
+      }
     },
-    { auto: true },
+    { scope: "test", auto: true },
   ],
 });
+
+function defaultCapabilities(): ConfiguredCapabilities {
+  return {
+    local: false,
+    browserName: "chrome",
+    browserVersion: "latest",
+    os: "OS X",
+    osVersion: "catalina",
+  };
+}
+
+function parseCapabilities(capabilities: ConfiguredCapabilities) {
+  let {
+    username,
+    accessKey,
+    local,
+    localIdentifier,
+    playwrightVersion,
+    realMobile,
+    ...rest
+  } = capabilities;
+
+  username ??= process?.env?.BROWSERSTACK_USERNAME?.trim?.();
+  accessKey ??= (
+    process?.env?.BROWSERSTACK_KEY ?? process?.env?.BROWSERSTACK_ACCESS_KEY
+  )?.trim?.();
+  local ??= (process?.env?.BROWSERSTACK_LOCAL?.trim?.() ?? "false") === "true";
+  localIdentifier ??= local
+    ? capabilities.localIdentifier ?? process?.env?.npm_package_name?.trim?.()
+    : undefined;
+  playwrightVersion ??= process?.env?.PLAYWRIGHT_VERSION?.trim?.() ?? pwVersion;
+
+  if (!username?.length || !accessKey?.length) {
+    throw new Error("Missing BrowserStack credentials");
+  }
+
+  if (!playwrightVersion?.length) {
+    throw new Error("Missing Playwright version");
+  }
+
+  const configured = {
+    ...rest,
+    username,
+    accessKey,
+    local,
+    localIdentifier,
+    playwrightVersion,
+    realMobile:
+      typeof realMobile === "boolean"
+        ? realMobile
+        : ["android", "ios"].includes(rest?.os?.toLowerCase?.()),
+  };
+
+  return {
+    configuredCapabilities: configured,
+    desiredCapabilities: {
+      ...rest,
+      "browserstack.username": username,
+      "browserstack.accessKey": accessKey,
+      ...(local
+        ? {
+            "browserstack.local": "true",
+            "browserstack.localIdentifier": localIdentifier,
+          }
+        : undefined),
+      ...(playwrightVersion
+        ? {
+            "browserstack.playwrightVersion": playwrightVersion,
+          }
+        : undefined),
+      ...(realMobile ? { realMobile: "true" } : undefined),
+    },
+  };
+}
