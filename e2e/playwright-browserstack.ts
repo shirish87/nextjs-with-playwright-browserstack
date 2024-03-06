@@ -59,10 +59,6 @@ export const test = base.extend<BrowserStackOptions & BrowserStackFixtures>({
       return await use(page);
     }
 
-    if (typeof browserstack !== "object") {
-      throw new Error("Missing BrowserStack capabilities");
-    }
-
     const {
       configuredCapabilities: { realMobile, os },
       desiredCapabilities,
