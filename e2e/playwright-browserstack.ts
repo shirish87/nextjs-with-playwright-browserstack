@@ -48,7 +48,7 @@ export type BrowserStackOptions = {
 };
 
 export type BrowserStackFixtures = {
-  isBrowserstack: boolean;
+  isBrowserStack: boolean;
 };
 
 export const test = base.extend<BrowserStackOptions & BrowserStackFixtures>({
@@ -105,7 +105,7 @@ export const test = base.extend<BrowserStackOptions & BrowserStackFixtures>({
     await platform.close();
   },
 
-  isBrowserstack: [
+  isBrowserStack: [
     async ({ browserstack, page, context }, use, testInfo) => {
       if (browserstack) {
         await context.tracing.start({
