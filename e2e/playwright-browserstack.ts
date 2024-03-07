@@ -122,7 +122,8 @@ export const test = base.extend<BrowserStackOptions & BrowserStackFixtures>({
         const testResult = {
           action: "setSessionStatus",
           arguments: {
-            status: testInfo.status === "passed" ? "passed" : "failed",
+            status:
+              testInfo.status === testInfo.expectedStatus ? "passed" : "failed",
             reason: JSON.stringify(testInfo?.error ?? testInfo.status),
           },
         };
