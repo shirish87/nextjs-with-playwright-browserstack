@@ -57,9 +57,9 @@ export default defineConfig<BrowserStackOptions>({
         browserstack: {
           build: `${process.env.npm_package_name} - chrome osx`,
           local: true,
-          localIdentifier: process.env.npm_package_name,
+          localIdentifier: process.env.BROWSERSTACK_LOCAL_IDENTIFIER,
           browserName: "chrome",
-          browserVersion: "latest",
+          browserVersion: "120.0",
           os: "OS X",
           osVersion: "catalina",
         },
@@ -71,7 +71,7 @@ export default defineConfig<BrowserStackOptions>({
         browserstack: {
           build: `${process.env.npm_package_name} - Google Pixel 6`,
           local: true,
-          localIdentifier: process.env.npm_package_name,
+          localIdentifier: process.env.BROWSERSTACK_LOCAL_IDENTIFIER,
           realMobile: true,
           browserName: "chrome",
           deviceName: "Google Pixel 6",
