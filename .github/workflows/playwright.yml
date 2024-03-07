@@ -7,14 +7,19 @@ on:
 
 jobs:
   test:
-    timeout-minutes: 60
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    name: "node.js lts ${{ matrix.os }}"
+    timeout-minutes: 10
+    runs-on: ${{ matrix.os }}
     environment: default
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-node@v3
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
       with:
-        node-version: 18
+        node-version: "lts/*"
+        cache: "npm"
     - name: Install dependencies
       run: npm ci
     - name: Install Playwright Browsers
