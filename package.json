@@ -5,10 +5,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test:e2e": "browserstack-local run-with $npm_package_name -- playwright test"
+    "test": "browserstack-local run-with -- npm run test:e2e",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
-    "browserstack-client": "^3.5.0",
     "next": "latest",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
@@ -17,6 +17,7 @@
     "@playwright/test": "^1.42.1",
     "@types/node": "20.10.4",
     "@types/react": "18.2.45",
+    "browserstack-client": "^3.5.3",
     "typescript": "5.3.3"
   }
 }
